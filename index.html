@@ -16,6 +16,8 @@
             --cinza-medio: #E2E8F0;
             --cinza-escuro: #718096;
             --texto-primario: #172B4D;
+            --verde-sucesso: #10B981;
+            --laranja-excel: #217346;
         }
 
         /* Reset e estilos base */
@@ -90,9 +92,20 @@
             border-bottom: 2px solid var(--cinza-medio);
         }
 
+        /* Container de controles */
+        .controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
         /* Campo de pesquisa */
         .search-container {
-            margin-bottom: 20px;
+            flex: 1;
+            min-width: 250px;
         }
 
         .search-input-group {
@@ -124,6 +137,55 @@
             outline: none;
             border-color: var(--azul-royal);
             box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
+        }
+
+        /* Botões de exportação */
+        .export-container {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .export-btn-pdf {
+            background-color: #DC2626;
+            color: var(--branco);
+        }
+
+        .export-btn-pdf:hover {
+            background-color: #B91C1C;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .export-btn-excel {
+            background-color: var(--laranja-excel);
+            color: var(--branco);
+        }
+
+        .export-btn-excel:hover {
+            background-color: #166534;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(33, 115, 70, 0.3);
+        }
+
+        .export-btn svg {
+            width: 16px;
+            height: 16px;
         }
 
         /* Tabela de ramais */
@@ -246,11 +308,40 @@
             font-size: 14px;
         }
 
+        /* Loading spinner */
+        .loading-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         /* Responsividade */
         @media (max-width: 768px) {
             .content-card {
                 padding: 20px;
                 max-width: 95%;
+            }
+
+            .controls-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-container {
+                min-width: auto;
+            }
+
+            .export-container {
+                justify-content: center;
             }
 
             .ramais-table th,
@@ -278,6 +369,11 @@
                 box-shadow: 0 4px 12px rgba(0, 51, 160, 0.12);
             }
 
+            .export-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
             .ramais-table th,
             .ramais-table td {
                 padding: 8px 10px;
@@ -299,10 +395,6 @@
                 height: 50px;
             }
 
-            .logo-text {
-                font-size: 16px;
-            }
-
             /* Melhora a visualização da tabela em telas pequenas */
             .table-container {
                 margin-left: -16px;
@@ -312,6 +404,9 @@
             }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <header class="header">
@@ -324,18 +419,45 @@
         <div class="content-card">
             <h1 class="content-title">Lista de Ramais</h1>
             
-            <div class="search-container">
-                <div class="search-input-group">
-                    <svg class="search-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="m21 21-4.35-4.35"></path>
-                    </svg>
-                    <input 
-                        type="text" 
-                        class="search-input" 
-                        id="searchInput"
-                        placeholder="Pesquisar por nome, setor ou ramal..."
-                    >
+            <div class="controls-container">
+                <div class="search-container">
+                    <div class="search-input-group">
+                        <svg class="search-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input 
+                            type="text" 
+                            class="search-input" 
+                            id="searchInput"
+                            placeholder="Pesquisar por nome, setor ou ramal..."
+                        >
+                    </div>
+                </div>
+
+                <div class="export-container">
+                    <button class="export-btn export-btn-pdf" onclick="exportToPDF()" id="pdfBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10,9 9,9 8,9"></polyline>
+                        </svg>
+                        <span class="btn-text">Exportar PDF</span>
+                        <div class="loading-spinner"></div>
+                    </button>
+                    
+                    <button class="export-btn export-btn-excel" onclick="exportToExcel()" id="excelBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                            <line x1="9" y1="15" x2="15" y2="9"></line>
+                            <line x1="15" y1="15" x2="9" y2="9"></line>
+                        </svg>
+                        <span class="btn-text">Exportar Excel</span>
+                        <div class="loading-spinner"></div>
+                    </button>
                 </div>
             </div>
 
@@ -413,6 +535,168 @@
         let currentSort = { column: null, direction: null };
         let currentPage = 1;
         const itemsPerPage = 20;
+
+        // Função para mostrar/esconder loading
+        function showLoading(buttonId, show) {
+            const button = document.getElementById(buttonId);
+            const spinner = button.querySelector('.loading-spinner');
+            const text = button.querySelector('.btn-text');
+            
+            if (show) {
+                spinner.style.display = 'block';
+                text.style.display = 'none';
+                button.disabled = true;
+            } else {
+                spinner.style.display = 'none';
+                text.style.display = 'block';
+                button.disabled = false;
+            }
+        }
+
+        // Função para exportar para PDF
+        function exportToPDF() {
+            showLoading('pdfBtn', true);
+            
+            setTimeout(() => {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    // Configurações do documento
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(18);
+                    
+                    // Título
+                    doc.text('Lista de Ramais - Empresa', 20, 20);
+                    
+                    // Data de geração
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    const hoje = new Date().toLocaleDateString('pt-BR');
+                    doc.text(`Gerado em: ${hoje}`, 20, 30);
+                    
+                    // Preparar dados para a tabela
+                    const tableData = currentData.map(item => [
+                        item.nome,
+                        item.setor,
+                        item.ramal
+                    ]);
+
+                    // Configurar tabela
+                    doc.autoTable({
+                        head: [['Nome Completo', 'Setor', 'Ramal']],
+                        body: tableData,
+                        startY: 40,
+                        styles: {
+                            fontSize: 9,
+                            cellPadding: 3,
+                            lineColor: [220, 220, 220],
+                            lineWidth: 0.1,
+                        },
+                        headStyles: {
+                            fillColor: [0, 51, 160],
+                            textColor: [255, 255, 255],
+                            fontStyle: 'bold',
+                        },
+                        alternateRowStyles: {
+                            fillColor: [248, 249, 250],
+                        },
+                        columnStyles: {
+                            0: { cellWidth: 'auto' }, // Nome
+                            1: { cellWidth: 'auto' }, // Setor
+                            2: { cellWidth: 25, halign: 'center' }, // Ramal
+                        },
+                        margin: { top: 40, right: 20, bottom: 20, left: 20 },
+                    });
+
+                    // Rodapé
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(8);
+                        doc.text(`Página ${i} de ${pageCount}`, 
+                            doc.internal.pageSize.getWidth() - 30, 
+                            doc.internal.pageSize.getHeight() - 10
+                        );
+                    }
+
+                    // Salvar o arquivo
+                    const searchTerm = document.getElementById('searchInput').value;
+                    const fileName = searchTerm ? 
+                        `ramais_filtrados_${searchTerm.replace(/\s+/g, '_')}_${hoje.replace(/\//g, '-')}.pdf` :
+                        `lista_ramais_${hoje.replace(/\//g, '-')}.pdf`;
+                    
+                    doc.save(fileName);
+                    
+                } catch (error) {
+                    console.error('Erro ao gerar PDF:', error);
+                    alert('Erro ao gerar PDF. Tente novamente.');
+                } finally {
+                    showLoading('pdfBtn', false);
+                }
+            }, 500);
+        }
+
+        // Função para exportar para Excel
+        function exportToExcel() {
+            showLoading('excelBtn', true);
+            
+            setTimeout(() => {
+                try {
+                    // Criar workbook
+                    const wb = XLSX.utils.book_new();
+                    
+                    // Preparar dados para a planilha
+                    const wsData = [
+                        ['Nome Completo', 'Setor', 'Ramal'], // Cabeçalho
+                        ...currentData.map(item => [item.nome, item.setor, item.ramal])
+                    ];
+                    
+                    // Criar worksheet
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    
+                    // Configurar largura das colunas
+                    ws['!cols'] = [
+                        { wch: 35 }, // Nome Completo
+                        { wch: 25 }, // Setor
+                        { wch: 10 }  // Ramal
+                    ];
+                    
+                    // Estilizar cabeçalho (se suportado)
+                    const headerStyle = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "0033A0" } },
+                        alignment: { horizontal: "center" }
+                    };
+                    
+                    // Aplicar estilo ao cabeçalho
+                    ['A1', 'B1', 'C1'].forEach(cell => {
+                        if (ws[cell]) {
+                            ws[cell].s = headerStyle;
+                        }
+                    });
+                    
+                    // Adicionar worksheet ao workbook
+                    XLSX.utils.book_append_sheet(wb, ws, 'Ramais');
+                    
+                    // Gerar nome do arquivo
+                    const hoje = new Date().toLocaleDateString('pt-BR');
+                    const searchTerm = document.getElementById('searchInput').value;
+                    const fileName = searchTerm ? 
+                        `ramais_filtrados_${searchTerm.replace(/\s+/g, '_')}_${hoje.replace(/\//g, '-')}.xlsx` :
+                        `lista_ramais_${hoje.replace(/\//g, '-')}.xlsx`;
+                    
+                    // Salvar arquivo
+                    XLSX.writeFile(wb, fileName);
+                    
+                } catch (error) {
+                    console.error('Erro ao gerar Excel:', error);
+                    alert('Erro ao gerar Excel. Tente novamente.');
+                } finally {
+                    showLoading('excelBtn', false);
+                }
+            }, 500);
+        }
 
         // Função para renderizar a tabela com paginação
         function renderTable(data) {

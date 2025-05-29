@@ -109,7 +109,8 @@ lista-ramais/
 
 ## 📈 Futuras Melhorias
 
-- [ ] Exportação para PDF/Excel
+- [x] Exportação para PDF/Excel
+- [ ] Importação de Ramais
 - [ ] Integração com APIs corporativas
 - [ ] Modo escuro/claro
 - [ ] Favoritos pessoais
